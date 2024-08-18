@@ -10,7 +10,7 @@ def concat(str1: str, str2: str) -> str:
     str1 (str): The first string.
     str2 (str): The second string.
 
-    Return:
+    Returns:
     str: The concatenated string.
     """
     return str1 + str2

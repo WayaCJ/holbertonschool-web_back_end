@@ -11,7 +11,7 @@ def floor(n: float) -> int:
     Args:
     n (float): The floating-point number to round.
 
-    Return:
+    Returns:
     floor: The largest integer less than
     or equal to the given float.
     """

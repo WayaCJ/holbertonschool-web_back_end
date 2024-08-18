@@ -16,7 +16,7 @@ its input by the given multiplier.
     Args:
     multiplier (float): The multiplier to be used in the returned function.
 
-    Return:
+    Returns:
     Callable[[float], float]: A function that
 multiplies its input by the multiplier.
     """
