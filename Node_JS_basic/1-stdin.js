@@ -1,22 +1,11 @@
-const readline = require('readline');
+// Program that gets input from user and writes it to stdout
+process.stdin.setEncoding('utf-8');
+process.stdout.write('Welcome to Holberton School, what is your name?\n');
+process.stdin.on('readable', () => {
+  const name = process.stdin.read();
+  if (name) process.stdout.write(`Your name is: ${name}`);
+});
 
-function welcomeUser() {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
-    console.log('Welcome to Holberton School, what is your name?');
-
-    rl.on('line', (input) => {
-        console.log(`Your name is: ${input}`);
-        rl.close();
-    });
-
-    rl.on('close', () => {
-        console.log('This important software is now closing');
-        process.exit(0);
-    });
-}
-
-module.exports = welcomeUser;
+process.stdin.on('end', () => {
+  process.stdout.write('This important software is now closing\n');
+});

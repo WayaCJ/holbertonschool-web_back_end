@@ -1,56 +1,57 @@
 const express = require('express');
-const fs = require('fs').promises;
+const fs = require('fs');
 
-const app = express();
+const countStudents = async (path) => {
+  try {
+    const csvData = await fs.promises.readFile(path, { encoding: 'utf8' });
+    const fields = {};
+    const dataShow = {};
+    let data = csvData.toString().split('\n');
+    data = data.filter((element) => element.length > 0);
 
-async function countStudents(filePath) {
-    const data = await fs.readFile(filePath, 'utf-8');
-    const lines = data.trim().split('\n').filter(line => line);
-    const students = {};
-
-    for (const line of lines.slice(1)) {
-        const [firstName, field] = line.split(',');
-
-        if (field) {
-            if (!students[field]) {
-                students[field] = [];
-            }
-            students[field].push(firstName);
+    data.shift();
+    data.forEach((element) => {
+      if (element.length > 0) {
+        const row = element.split(',');
+        if (row[3] in fields) {
+          fields[row[3]].push(row[0]);
+        } else {
+          fields[row[3]] = [row[0]];
         }
+      }
+    });
+    dataShow.numberStudents = `Number of students: ${data.length}`;
+    dataShow.studentsFields = [];
+    for (const field in fields) {
+      if (field) {
+        const list = fields[field];
+        dataShow.studentsFields.push(`Number of students in ${field}: ${list.length}. List: ${list.toString().replace(/,/g, ', ')}`);
+      }
     }
-
-    return students;
-}
+    return dataShow;
+  } catch (err) {
+    throw new Error('Cannot load the database');
+  }
+};
+const app = express();
+const port = 1245;
 
 app.get('/', (req, res) => {
-    res.send('Hello Holberton School!');
+  res.send('Hello Holberton School!');
 });
 
-app.get('/students', async (req, res) => {
-    const dbPath = process.argv[2];
-
-    if (!dbPath) {
-        res.status(500).send('Cannot load the database');
-        return;
-    }
-
-    try {
-        const students = await countStudents(dbPath);
-        const totalStudents = Object.values(students).reduce((acc, names) => acc + names.length, 0);
-        let response = `This is the list of our students\nNumber of students: ${totalStudents}\n`;
-
-        for (const [field, names] of Object.entries(students)) {
-            response += `Number of students in ${field}: ${names.length}. List: ${names.join(', ')}\n`;
-        }
-
-        res.status(200).send(response);
-    } catch (err) {
-        res.status(500).send('Cannot load the database');
-    }
+app.get('/students', (req, res) => {
+  res.write('This is the list of our students\n');
+  countStudents(process.argv[2]).then((dataShow) => {
+    res.write([dataShow.numberStudents].concat(dataShow.studentsFields).join('\n'));
+    res.end('\n');
+  }).catch((error) => {
+    res.end(error.message);
+  });
 });
 
-app.listen(1245, () => {
-    console.log('Server is listening on port 1245');
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`);
 });
 
 module.exports = app;

@@ -1,61 +1,63 @@
 const http = require('http');
-const fs = require('fs').promises;
+const fs = require('fs');
 
-async function countStudents(filePath) {
-    const data = await fs.readFile(filePath, 'utf-8');
-    const lines = data.trim().split('\n').filter(line => line);
-    const students = {};
+function countStudents(path) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(path, { encoding: 'utf-8' }, (err, data) => {
+            if (err) return reject(Error('Cannot load the database'));
 
-    for (const line of lines.slice(1)) {
-        const [firstName, field] = line.split(',');
+            const lines = data.split('\n').slice(1, -1);
+            const header = data.split('\n').slice(0, 1)[0].split(',');
+            const idxFn = header.findIndex((ele) => ele === 'firstname');
+            const idxFd = header.findIndex((ele) => ele === 'field');
+            const fields = {};
+            const students = {};
+            const all = {};
 
-        if (field) {
-            if (!students[field]) {
-                students[field] = [];
+            lines.forEach((line) => {
+                const list = line.split(',');
+                if (!fields[list[idxFd]]) fields[list[idxFd]] = 0;
+                fields[list[idxFd]] += 1;
+                if (!students[list[idxFd]]) students[list[idxFd]] = '';
+                students[list[idxFd]] += students[list[idxFd]]
+                    ? `, ${list[idxFn]}`
+                    : list[idxFn];
+            });
+
+            all.numberStudents = `Number of students: ${lines.length}\n`;
+            all.listStudents = [];
+            for (const key in fields) {
+                if (Object.hasOwnProperty.call(fields, key)) {
+                    const element = fields[key];
+                    all.listStudents.push(`Number of students in ${key}: ${element}. List: ${students[key]}`);
+                }
             }
-            students[field].push(firstName);
-        }
-    }
-
-    return students;
+            return resolve(all);
+        });
+    });
 }
 
-const app = http.createServer(async (req, res) => {
-    if (req.url === '/') {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('Hello Holberton School!\n');
-    } else if (req.url === '/students') {
-        const dbPath = process.argv[2];
+const hostname = '127.0.0.1';
+const port = 1245;
 
-        if (!dbPath) {
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end('Cannot load the database\n');
-            return;
-        }
-
-        try {
-            const students = await countStudents(dbPath);
-            const totalStudents = Object.values(students).reduce((acc, names) => acc + names.length, 0);
-            let response = `This is the list of our students\nNumber of students: ${totalStudents}\n`;
-
-            for (const [field, names] of Object.entries(students)) {
-                response += `Number of students in ${field}: ${names.length}. List: ${names.join(', ')}\n`;
-            }
-
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end(response);
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end('Cannot load the database\n');
-        }
-    } else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not Found\n');
+const app = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    if (req.url === '/') res.end('Hello Holberton School!');
+    if (req.url === '/students') {
+        res.write('This is the list of our students\n');
+        countStudents(process.argv[2])
+            .then((data) => {
+                res.write(data.numberStudents);
+                res.write(data.listStudents.join('\n'));
+                res.end();
+            })
+            .catch((err) => {
+                res.end(err.message);
+            });
     }
 });
 
-app.listen(1245, () => {
-    console.log('Server is listening on port 1245');
-});
+app.listen(port, hostname);
 
 module.exports = app;

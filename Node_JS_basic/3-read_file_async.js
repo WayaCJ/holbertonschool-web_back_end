@@ -1,32 +1,36 @@
-const fs = require('fs').promises;
+const fs = require('fs');
 
-async function countStudents(filePath) {
-    try {
-        const data = await fs.readFile(filePath, 'utf-8');
-
-        const lines = data.trim().split('\n').filter(line => line);
-        const students = {};
-
-        for (const line of lines.slice(1)) {
-            const [firstName, field] = line.split(',');
-
-            if (field) {
-                if (!students[field]) {
-                    students[field] = [];
-                }
-                students[field].push(firstName);
-            }
-        }
-
-        const totalStudents = lines.length - 1;
-        console.log(`Number of students: ${totalStudents}`);
-
-        for (const [field, names] of Object.entries(students)) {
-            console.log(`Number of students in ${field}: ${names.length}. List: ${names.join(', ')}`);
-        }
-    } catch (err) {
-        throw new Error('Cannot load the database');
+const countStudents = (path) => new Promise((resolve, reject) => {
+  fs.readFile(path, (error, csvData) => {
+    if (error) {
+      reject(Error('Cannot load the database'));
     }
-}
+    if (csvData) {
+      const fields = {};
+      let data = csvData.toString().split('\n');
+      data = data.filter((element) => element.length > 0);
+      data.shift();
+
+      data.forEach((element) => {
+        if (element.length > 0) {
+          const row = element.split(',');
+          if (row[3] in fields) {
+            fields[row[3]].push(row[0]);
+          } else {
+            fields[row[3]] = [row[0]];
+          }
+        }
+      });
+      console.log(`Number of students: ${data.length}`);
+      for (const field in fields) {
+        if (field) {
+          const list = fields[field];
+          console.log(`Number of students in ${field}: ${list.length}. List: ${list.toString().replace(/,/g, ', ')}`);
+        }
+      }
+    }
+    resolve();
+  });
+});
 
 module.exports = countStudents;
